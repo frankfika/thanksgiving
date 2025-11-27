@@ -4,12 +4,21 @@ import { StarData } from "../types";
 // Helper to generate a random ID
 const generateId = () => Math.random().toString(36).substr(2, 9);
 
-// Safely access API key
-const getApiKey = () => {
-  if (typeof process !== 'undefined' && process.env) {
-    return process.env.API_KEY;
+// Safely access API key with try-catch to avoid ReferenceError if process is not defined
+const getApiKey = (): string | undefined => {
+  try {
+    if (typeof process !== 'undefined' && process.env) {
+      return process.env.API_KEY;
+    }
+  } catch (e) {
+    // Ignore error if process is not defined
   }
   return undefined;
+};
+
+// Export a safe checker for UI components
+export const hasValidApiKey = (): boolean => {
+  return !!getApiKey();
 };
 
 export const analyzeGratitude = async (text: string): Promise<StarData> => {

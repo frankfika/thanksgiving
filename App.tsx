@@ -2,7 +2,7 @@ import React, { useState, useEffect, useCallback } from 'react';
 import GalaxyCanvas from './components/GalaxyCanvas';
 import InputPanel from './components/InputPanel';
 import StarDetail from './components/StarDetail';
-import { analyzeGratitude } from './services/geminiService';
+import { analyzeGratitude, hasValidApiKey } from './services/geminiService';
 import { StarData, AppState } from './types';
 
 // Pre-fill with some initial stars so the galaxy isn't empty
@@ -53,9 +53,11 @@ const App: React.FC = () => {
   const [appState, setAppState] = useState<AppState>(AppState.IDLE);
   const [selectedStar, setSelectedStar] = useState<StarData | null>(null);
   const [showIntro, setShowIntro] = useState(true);
+  const [apiKeyExists, setApiKeyExists] = useState(true);
 
-  // Safely check for API key existence
-  const hasApiKey = typeof process !== 'undefined' && process.env && process.env.API_KEY;
+  useEffect(() => {
+    setApiKeyExists(hasValidApiKey());
+  }, []);
 
   // Handle creating a new star
   const handleCreateStar = useCallback(async (text: string) => {
@@ -123,7 +125,7 @@ const App: React.FC = () => {
       <StarDetail star={selectedStar} onClose={() => setSelectedStar(null)} />
       
       {/* API Key Warning (Hidden if env valid) */}
-      {!hasApiKey && (
+      {!apiKeyExists && (
         <div className="absolute top-0 w-full bg-red-600/80 text-white text-center p-2 text-xs z-50">
           Missing API_KEY in environment variables. Gemini features will fail.
         </div>

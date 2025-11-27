@@ -4,10 +4,12 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <!-- 
-      FIX: Add Content-Security-Policy to allow 'unsafe-eval' and data/blob schemes.
-      This is required for Tailwind Play CDN and some runtime bundlers.
+      Content-Security-Policy:
+      - Allows 'unsafe-eval' which is required for Tailwind Play CDN (JIT compilation in browser).
+      - Allows 'unsafe-inline' for inline scripts and styles.
+      - Allows * for loading resources from CDNs (Google AI, FontAwesome, etc).
     -->
-    <meta http-equiv="Content-Security-Policy" content="default-src * 'unsafe-inline' 'unsafe-eval' data: blob:; script-src * 'unsafe-inline' 'unsafe-eval' data: blob:; connect-src * 'unsafe-inline' 'unsafe-eval' data: blob:; img-src * data: blob: 'unsafe-inline'; frame-src *; style-src * 'unsafe-inline';">
+    <meta http-equiv="Content-Security-Policy" content="default-src * 'unsafe-inline' 'unsafe-eval' data: blob:; script-src * 'unsafe-inline' 'unsafe-eval' data: blob:; style-src * 'unsafe-inline'; img-src * data: blob:; font-src * data:;">
     <title>Gratitude Orbit - Thanksgiving AI</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script>
