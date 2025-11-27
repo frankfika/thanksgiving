@@ -30,7 +30,10 @@ const StarDetail: React.FC<StarDetailProps> = ({ star, onClose }) => {
       const link = document.createElement('a');
       link.download = `gratitude-star-${star.id}.png`;
       link.href = canvas.toDataURL('image/png');
+      link.style.display = 'none';
+      document.body.appendChild(link);
       link.click();
+      document.body.removeChild(link);
     } catch (error) {
       console.error('Failed to download:', error);
     } finally {
