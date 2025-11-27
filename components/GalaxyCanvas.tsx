@@ -39,21 +39,22 @@ const GalaxyCanvas: React.FC<GalaxyCanvasProps> = ({ stars, onStarClick }) => {
     if (!simulationRef.current) {
       simulationRef.current = d3.forceSimulation<StarData>(stars)
         // Reduced repulsion for a tighter galaxy
-        .force("charge", d3.forceManyBody().strength(-20)) 
+        .force("charge", d3.forceManyBody().strength(-30)) 
         // Gentle center pull
-        .force("center", d3.forceCenter(width / 2, height / 2).strength(0.02))
+        .force("center", d3.forceCenter(width / 2, height / 2).strength(0.01))
         // Softer collision
-        .force("collide", d3.forceCollide().radius((d) => 25 + (d.aiResponse.brightness * 10)).strength(0.8))
+        .force("collide", d3.forceCollide().radius((d) => 30 + (d.aiResponse.brightness * 10)).strength(0.5))
         // Very gentle drift
-        .force("x", d3.forceX(width / 2).strength(0.005))
-        .force("y", d3.forceY(height / 2).strength(0.005))
-        // Add velocity decay to simulate fluid resistance
-        .velocityDecay(0.2); 
+        .force("x", d3.forceX(width / 2).strength(0.002))
+        .force("y", d3.forceY(height / 2).strength(0.002))
+        // Add velocity decay to simulate fluid resistance (Higher = Slower, Smoother)
+        .velocityDecay(0.35); 
     }
 
     const simulation = simulationRef.current;
     simulation.nodes(stars);
-    simulation.alpha(0.3).restart(); // Lower alpha restart for smoother "settling"
+    // Low alpha restart for smoother "settling" without chaotic jumps
+    simulation.alpha(0.2).alphaDecay(0.01).restart(); 
 
     const render = () => {
       // --- Render Stars ---
@@ -92,13 +93,13 @@ const GalaxyCanvas: React.FC<GalaxyCanvasProps> = ({ stars, onStarClick }) => {
             .attr("y1", (l) => l.source.y || 0)
             .attr("x2", (l) => l.source.x || 0) // Start from source for animation
             .attr("y2", (l) => l.source.y || 0)
-            .transition().duration(400)
-            .attr("opacity", 0.3)
+            .transition().duration(500).ease(d3.easeCubicOut)
+            .attr("opacity", 0.4)
             .attr("x2", (l) => l.target.x || 0)
             .attr("y2", (l) => l.target.y || 0);
 
           // Highlight effect
-          d3.select(event.currentTarget).transition().duration(300).attr("transform", `translate(${d.x}, ${d.y}) scale(1.2)`);
+          d3.select(event.currentTarget).transition().duration(400).ease(d3.easeBackOut).attr("transform", `translate(${d.x}, ${d.y}) scale(1.3)`);
         })
         .on("mousemove", (event) => {
            setTooltipPos({ x: event.clientX, y: event.clientY });
@@ -108,7 +109,7 @@ const GalaxyCanvas: React.FC<GalaxyCanvasProps> = ({ stars, onStarClick }) => {
           // Remove lines
           linkGroup.selectAll("line").transition().duration(300).attr("opacity", 0).remove();
           // Remove highlight
-          d3.select(event.currentTarget).transition().duration(300).attr("transform", `translate(${d.x}, ${d.y}) scale(1)`);
+          d3.select(event.currentTarget).transition().duration(300).ease(d3.easeCubicOut).attr("transform", `translate(${d.x}, ${d.y}) scale(1)`);
         })
         .call(d3.drag<SVGGElement, StarData>()
             .on("start", dragstarted)
@@ -122,7 +123,7 @@ const GalaxyCanvas: React.FC<GalaxyCanvasProps> = ({ stars, onStarClick }) => {
         .attr("class", "glow")
         .attr("fill", (d) => d.aiResponse.sentimentColor)
         .attr("opacity", 0.15)
-        .transition().duration(1500).ease(d3.easeElasticOut)
+        .transition().duration(2000).ease(d3.easeElasticOut)
         .attr("r", (d) => 20 + (d.aiResponse.brightness * 25));
 
       // Star Core
@@ -132,15 +133,15 @@ const GalaxyCanvas: React.FC<GalaxyCanvasProps> = ({ stars, onStarClick }) => {
         .attr("fill", (d) => d.aiResponse.sentimentColor)
         .attr("opacity", 0.9)
         .style("filter", "blur(1px)")
-        .transition().duration(1500).ease(d3.easeElasticOut)
+        .transition().duration(2000).ease(d3.easeElasticOut)
         .attr("r", (d) => 5 + (d.aiResponse.brightness * 8));
 
       // Add Twinkle Animation
       enter.select(".core")
         .append("animate")
         .attr("attributeName", "opacity")
-        .attr("values", "0.9;0.4;0.9")
-        .attr("dur", () => `${1.5 + Math.random() * 3}s`)
+        .attr("values", "0.9;0.5;0.9")
+        .attr("dur", () => `${2 + Math.random() * 4}s`) // Slower twinkle
         .attr("repeatCount", "indefinite");
 
       // Update positions
@@ -185,12 +186,13 @@ const GalaxyCanvas: React.FC<GalaxyCanvasProps> = ({ stars, onStarClick }) => {
       {/* Tooltip */}
       {hoveredStar && (
         <div 
-          className="fixed pointer-events-none z-50 px-4 py-2 rounded-xl glass-panel text-white text-sm backdrop-blur-md border-l-4 transition-opacity duration-200"
+          className="fixed pointer-events-none z-50 px-4 py-2 rounded-xl glass-panel text-white text-sm backdrop-blur-md border-l-4 transition-all duration-300"
           style={{ 
             left: tooltipPos.x + 20, 
             top: tooltipPos.y - 20,
             borderColor: hoveredStar.aiResponse.sentimentColor,
-            opacity: 1
+            opacity: 1,
+            transform: 'translateY(0)'
           }}
         >
           <div className="font-bold text-xs uppercase tracking-widest opacity-70 mb-1">

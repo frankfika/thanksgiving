@@ -4,8 +4,16 @@ import { StarData } from "../types";
 // Helper to generate a random ID
 const generateId = () => Math.random().toString(36).substr(2, 9);
 
+// Safely access API key
+const getApiKey = () => {
+  if (typeof process !== 'undefined' && process.env) {
+    return process.env.API_KEY;
+  }
+  return undefined;
+};
+
 export const analyzeGratitude = async (text: string): Promise<StarData> => {
-  const apiKey = process.env.API_KEY;
+  const apiKey = getApiKey();
   if (!apiKey) {
     throw new Error("API Key is missing");
   }

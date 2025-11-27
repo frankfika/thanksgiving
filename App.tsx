@@ -54,6 +54,9 @@ const App: React.FC = () => {
   const [selectedStar, setSelectedStar] = useState<StarData | null>(null);
   const [showIntro, setShowIntro] = useState(true);
 
+  // Safely check for API key existence
+  const hasApiKey = typeof process !== 'undefined' && process.env && process.env.API_KEY;
+
   // Handle creating a new star
   const handleCreateStar = useCallback(async (text: string) => {
     setAppState(AppState.GENERATING);
@@ -120,7 +123,7 @@ const App: React.FC = () => {
       <StarDetail star={selectedStar} onClose={() => setSelectedStar(null)} />
       
       {/* API Key Warning (Hidden if env valid) */}
-      {!process.env.API_KEY && (
+      {!hasApiKey && (
         <div className="absolute top-0 w-full bg-red-600/80 text-white text-center p-2 text-xs z-50">
           Missing API_KEY in environment variables. Gemini features will fail.
         </div>
