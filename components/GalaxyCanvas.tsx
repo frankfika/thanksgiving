@@ -39,22 +39,35 @@ const GalaxyCanvas: React.FC<GalaxyCanvasProps> = ({ stars, onStarClick }) => {
     if (!simulationRef.current) {
       simulationRef.current = d3.forceSimulation<StarData>(stars)
         // Reduced repulsion for a tighter galaxy
-        .force("charge", d3.forceManyBody().strength(-30)) 
+        .force("charge", d3.forceManyBody().strength(-50))
         // Gentle center pull
-        .force("center", d3.forceCenter(width / 2, height / 2).strength(0.01))
+        .force("center", d3.forceCenter(width / 2, height / 2).strength(0.02))
         // Softer collision
-        .force("collide", d3.forceCollide().radius((d) => 30 + (d.aiResponse.brightness * 10)).strength(0.5))
-        // Very gentle drift
-        .force("x", d3.forceX(width / 2).strength(0.002))
-        .force("y", d3.forceY(height / 2).strength(0.002))
-        // Add velocity decay to simulate fluid resistance (Higher = Slower, Smoother)
-        .velocityDecay(0.35); 
+        .force("collide", d3.forceCollide().radius((d) => 40 + (d.aiResponse.brightness * 15)).strength(0.6))
+        // Gentle orbital drift
+        .force("x", d3.forceX(width / 2).strength(0.005))
+        .force("y", d3.forceY(height / 2).strength(0.005))
+        // Add velocity decay to simulate fluid resistance
+        .velocityDecay(0.4);
     }
 
     const simulation = simulationRef.current;
     simulation.nodes(stars);
-    // Low alpha restart for smoother "settling" without chaotic jumps
-    simulation.alpha(0.2).alphaDecay(0.01).restart(); 
+    // Keep simulation running continuously with low alpha
+    simulation.alpha(0.3).alphaDecay(0.005).alphaMin(0.1).restart();
+
+    // Add continuous gentle motion
+    const orbitInterval = setInterval(() => {
+      stars.forEach((star, i) => {
+        if (!star.fx && !star.fy) {
+          const angle = Date.now() * 0.0001 + i * 0.5;
+          const drift = Math.sin(angle) * 0.3;
+          star.vx = (star.vx || 0) + drift;
+          star.vy = (star.vy || 0) + Math.cos(angle) * 0.3;
+        }
+      });
+      simulation.alpha(0.15).restart();
+    }, 100); 
 
     const render = () => {
       // --- Render Stars ---
@@ -117,32 +130,69 @@ const GalaxyCanvas: React.FC<GalaxyCanvasProps> = ({ stars, onStarClick }) => {
             .on("end", dragended)
         );
 
+      // Outer Glow (pulsing)
+      enter.append("circle")
+        .attr("r", 0)
+        .attr("class", "outer-glow")
+        .attr("fill", (d) => d.aiResponse.sentimentColor)
+        .attr("opacity", 0.08)
+        .transition().duration(1500).ease(d3.easeElasticOut)
+        .attr("r", (d) => 35 + (d.aiResponse.brightness * 35));
+
+      // Add pulse animation to outer glow
+      enter.select(".outer-glow")
+        .append("animate")
+        .attr("attributeName", "r")
+        .attr("values", (d: StarData) => {
+          const base = 35 + (d.aiResponse.brightness * 35);
+          return `${base};${base * 1.3};${base}`;
+        })
+        .attr("dur", () => `${3 + Math.random() * 2}s`)
+        .attr("repeatCount", "indefinite");
+
       // Star Glow
       enter.append("circle")
         .attr("r", 0)
         .attr("class", "glow")
         .attr("fill", (d) => d.aiResponse.sentimentColor)
-        .attr("opacity", 0.15)
+        .attr("opacity", 0.2)
         .transition().duration(2000).ease(d3.easeElasticOut)
         .attr("r", (d) => 20 + (d.aiResponse.brightness * 25));
+
+      // Add breathing animation to glow
+      enter.select(".glow")
+        .append("animate")
+        .attr("attributeName", "opacity")
+        .attr("values", "0.2;0.35;0.2")
+        .attr("dur", () => `${2 + Math.random() * 3}s`)
+        .attr("repeatCount", "indefinite");
 
       // Star Core
       enter.append("circle")
         .attr("r", 0)
         .attr("class", "core")
         .attr("fill", (d) => d.aiResponse.sentimentColor)
-        .attr("opacity", 0.9)
+        .attr("opacity", 0.95)
         .style("filter", "blur(1px)")
         .transition().duration(2000).ease(d3.easeElasticOut)
-        .attr("r", (d) => 5 + (d.aiResponse.brightness * 8));
+        .attr("r", (d) => 6 + (d.aiResponse.brightness * 10));
 
-      // Add Twinkle Animation
+      // Add Twinkle Animation to core
       enter.select(".core")
         .append("animate")
         .attr("attributeName", "opacity")
-        .attr("values", "0.9;0.5;0.9")
-        .attr("dur", () => `${2 + Math.random() * 4}s`) // Slower twinkle
+        .attr("values", "0.95;0.6;0.95")
+        .attr("dur", () => `${1.5 + Math.random() * 2}s`)
         .attr("repeatCount", "indefinite");
+
+      // Inner bright spot
+      enter.append("circle")
+        .attr("r", 0)
+        .attr("class", "inner")
+        .attr("fill", "#ffffff")
+        .attr("opacity", 0.8)
+        .transition().duration(2000).ease(d3.easeElasticOut)
+        .attr("r", (d) => 2 + (d.aiResponse.brightness * 3));
 
       // Update positions
       nodes.merge(enter)
@@ -171,6 +221,7 @@ const GalaxyCanvas: React.FC<GalaxyCanvasProps> = ({ stars, onStarClick }) => {
     }
 
     return () => {
+      clearInterval(orbitInterval);
       simulation.stop();
     };
   }, [stars, onStarClick]);
