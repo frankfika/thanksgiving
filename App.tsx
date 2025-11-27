@@ -2,7 +2,7 @@ import React, { useState, useEffect, useCallback } from 'react';
 import GalaxyCanvas from './components/GalaxyCanvas';
 import InputPanel from './components/InputPanel';
 import StarDetail from './components/StarDetail';
-import { analyzeGratitude, hasValidApiKey } from './services/deepseekService';
+import { analyzeGratitude } from './services/deepseekService';
 import { StarData, AppState } from './types';
 import { useI18n } from './i18n';
 import { checkRateLimit, incrementCount, getRemainingCount } from './services/rateLimit';
@@ -69,14 +69,12 @@ const App: React.FC = () => {
   const [appState, setAppState] = useState<AppState>(AppState.IDLE);
   const [selectedStar, setSelectedStar] = useState<StarData | null>(null);
   const [showIntro, setShowIntro] = useState(true);
-  const [apiKeyExists, setApiKeyExists] = useState(true);
   const [remaining, setRemaining] = useState(20);
   const [rateLimitError, setRateLimitError] = useState(false);
   const { lang, setLang, t } = useI18n();
 
   // Load shared stars and check rate limit on mount
   useEffect(() => {
-    setApiKeyExists(hasValidApiKey());
     setRemaining(getRemainingCount());
 
     // Fetch shared stars from API and merge with defaults
@@ -114,10 +112,8 @@ const App: React.FC = () => {
       // Add the new star locally
       setStars((prev) => [...prev, newStar]);
 
-      // Auto-select the new star after a brief delay
-      setTimeout(() => {
-        setSelectedStar(newStar);
-      }, 800);
+      // Show the newly created star's detail card
+      setSelectedStar(newStar);
 
     } catch (error) {
       console.error("Failed to create star", error);
@@ -177,13 +173,6 @@ const App: React.FC = () => {
 
       {/* Detail Modal */}
       <StarDetail star={selectedStar} onClose={() => setSelectedStar(null)} />
-      
-      {/* API Key Warning (Hidden if env valid) */}
-      {!apiKeyExists && (
-        <div className="absolute top-0 w-full bg-red-600/80 text-white text-center p-2 text-xs z-50">
-          {t('missingKey')}
-        </div>
-      )}
 
       {/* Rate Limit Error */}
       {rateLimitError && (
