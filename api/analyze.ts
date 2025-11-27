@@ -16,11 +16,13 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     return res.status(405).json({ error: 'Method not allowed' });
   }
 
-  const apiKey = process.env.DEEPSEEK_KEY;
-  if (!apiKey) {
-    console.error('DEEPSEEK_KEY environment variable is not set');
+  // Support multiple possible env var names, trim whitespace
+  const rawKey = process.env.DEEPSEEK_KEY || process.env.DEEPSEEK_API_KEY || process.env.DEEP_SEEK_KEY;
+  if (!rawKey) {
+    console.error('DeepSeek API key not found. Checked: DEEPSEEK_KEY, DEEPSEEK_API_KEY, DEEP_SEEK_KEY');
     return res.status(500).json({ error: 'API key not configured' });
   }
+  const apiKey = rawKey.trim();
 
   const { text } = req.body;
   if (!text || typeof text !== 'string') {
