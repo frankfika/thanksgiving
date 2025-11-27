@@ -42,17 +42,24 @@ const GalaxyCanvas: React.FC<GalaxyCanvasProps> = ({ stars, onStarClick }) => {
     }
 
     // Initialize simulation with smoother physics
+    // Adjust parameters for mobile screens
+    const isMobile = width < 768;
+    const chargeStrength = isMobile ? -20 : -50;
+    const collideRadius = isMobile ? 25 : 40;
+    const centerStrength = isMobile ? 0.08 : 0.02;
+    const positionStrength = isMobile ? 0.03 : 0.005;
+
     if (!simulationRef.current) {
       simulationRef.current = d3.forceSimulation<StarData>(stars)
         // Reduced repulsion for a tighter galaxy
-        .force("charge", d3.forceManyBody().strength(-50))
-        // Gentle center pull
-        .force("center", d3.forceCenter(width / 2, height / 2).strength(0.02))
-        // Softer collision
-        .force("collide", d3.forceCollide().radius((d) => 40 + (d.aiResponse.brightness * 15)).strength(0.6))
-        // Gentle orbital drift
-        .force("x", d3.forceX(width / 2).strength(0.005))
-        .force("y", d3.forceY(height / 2).strength(0.005))
+        .force("charge", d3.forceManyBody().strength(chargeStrength))
+        // Stronger center pull on mobile to keep stars visible
+        .force("center", d3.forceCenter(width / 2, height / 2).strength(centerStrength))
+        // Smaller collision radius on mobile
+        .force("collide", d3.forceCollide().radius((d) => collideRadius + (d.aiResponse.brightness * 10)).strength(0.6))
+        // Stronger position force on mobile
+        .force("x", d3.forceX(width / 2).strength(positionStrength))
+        .force("y", d3.forceY(height / 2).strength(positionStrength))
         // Add velocity decay to simulate fluid resistance
         .velocityDecay(0.4);
     }
