@@ -130,11 +130,11 @@ const App: React.FC = () => {
       <div className="absolute top-0 left-0 w-full h-full bg-[url('https://www.transparenttextures.com/patterns/stardust.png')] opacity-30 pointer-events-none" />
 
       {/* Header / Title */}
-      <div className="absolute top-8 left-8 z-10 pointer-events-none">
-        <h1 className="text-4xl font-thin tracking-widest text-transparent bg-clip-text bg-gradient-to-r from-amber-200 to-purple-400">
+      <div className="absolute top-4 sm:top-8 left-4 sm:left-8 z-10 pointer-events-none">
+        <h1 className="text-2xl sm:text-4xl font-thin tracking-widest text-transparent bg-clip-text bg-gradient-to-r from-amber-200 to-purple-400">
           {t('title')}
         </h1>
-        <p className="text-white/40 text-sm mt-2 tracking-widest uppercase">
+        <p className="text-white/40 text-xs sm:text-sm mt-1 sm:mt-2 tracking-widest uppercase">
           {t('subtitle')}
         </p>
       </div>
@@ -142,7 +142,7 @@ const App: React.FC = () => {
       {/* Language Switcher */}
       <button
         onClick={() => setLang(lang === 'zh' ? 'en' : 'zh')}
-        className="absolute top-8 right-8 z-20 px-3 py-1.5 rounded-full glass-panel text-white/60 hover:text-white text-sm transition-colors"
+        className="absolute top-4 sm:top-8 right-4 sm:right-8 z-20 px-2.5 sm:px-3 py-1 sm:py-1.5 rounded-full glass-panel text-white/60 hover:text-white text-xs sm:text-sm transition-colors"
       >
         {lang === 'zh' ? 'EN' : '中文'}
       </button>
@@ -153,12 +153,12 @@ const App: React.FC = () => {
           className="absolute inset-0 z-30 flex items-center justify-center bg-black/80 backdrop-blur-md transition-opacity duration-1000"
           onClick={() => setShowIntro(false)}
         >
-          <div className="text-center max-w-2xl px-6 animate-pulse-slow cursor-pointer">
-            <h2 className="text-3xl md:text-5xl font-light mb-6 text-white">{t('introTitle')}</h2>
-            <p className="text-lg text-gray-300 font-light leading-relaxed whitespace-pre-line">
+          <div className="text-center max-w-2xl px-4 sm:px-6 animate-pulse-slow cursor-pointer">
+            <h2 className="text-2xl sm:text-3xl md:text-5xl font-light mb-4 sm:mb-6 text-white">{t('introTitle')}</h2>
+            <p className="text-sm sm:text-lg text-gray-300 font-light leading-relaxed whitespace-pre-line">
               {t('introDesc')}
             </p>
-            <div className="mt-8 text-white/30 text-sm uppercase tracking-widest">
+            <div className="mt-6 sm:mt-8 text-white/30 text-xs sm:text-sm uppercase tracking-widest">
               {t('introHint')}
             </div>
           </div>
@@ -182,7 +182,7 @@ const App: React.FC = () => {
       )}
 
       {/* Remaining Count */}
-      <div className="absolute bottom-24 left-1/2 transform -translate-x-1/2 text-white/40 text-xs z-10">
+      <div className="absolute bottom-20 sm:bottom-24 left-1/2 transform -translate-x-1/2 text-white/40 text-[10px] sm:text-xs z-10">
         {t('remaining')}: {remaining} {t('times')}
       </div>
     </div>
