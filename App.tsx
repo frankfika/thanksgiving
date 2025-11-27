@@ -71,7 +71,16 @@ const App: React.FC = () => {
   const [showIntro, setShowIntro] = useState(true);
   const [remaining, setRemaining] = useState(20);
   const [rateLimitError, setRateLimitError] = useState(false);
+  const [isWechat, setIsWechat] = useState(false);
   const { lang, setLang, t } = useI18n();
+
+  // Detect WeChat browser
+  useEffect(() => {
+    const ua = navigator.userAgent.toLowerCase();
+    if (ua.includes('micromessenger')) {
+      setIsWechat(true);
+    }
+  }, []);
 
   // Load shared stars and check rate limit on mount
   useEffect(() => {
@@ -124,7 +133,33 @@ const App: React.FC = () => {
 
   return (
     <div className="relative w-screen h-screen bg-space text-white overflow-hidden selection:bg-purple-500/30">
-      
+
+      {/* WeChat Browser Warning */}
+      {isWechat && (
+        <div className="fixed inset-0 z-[100] bg-black/95 flex items-center justify-center p-6">
+          <div className="text-center max-w-sm">
+            <div className="text-6xl mb-6">🌟</div>
+            <h2 className="text-xl font-medium mb-4 text-white">
+              {lang === 'zh' ? '请在浏览器中打开' : 'Please Open in Browser'}
+            </h2>
+            <p className="text-gray-400 text-sm mb-6 leading-relaxed">
+              {lang === 'zh'
+                ? '为了获得最佳体验并支持图片下载功能，请点击右上角「···」选择「在浏览器中打开」'
+                : 'For the best experience and to enable image download, please tap "..." in the top right corner and select "Open in Browser"'}
+            </p>
+            <div className="flex flex-col items-center gap-4">
+              <div className="flex items-center gap-2 text-amber-400 text-sm">
+                <span>👆</span>
+                <span>{lang === 'zh' ? '点击右上角 ···' : 'Tap ... in top right'}</span>
+              </div>
+              <svg className="w-16 h-16 text-white/20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1">
+                <path d="M7 17L17 7M17 7H7M17 7V17" strokeLinecap="round" strokeLinejoin="round"/>
+              </svg>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* Background Ambience */}
       <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_center,_var(--tw-gradient-stops))] from-slate-900 via-[#000000] to-black opacity-80" />
       <div className="absolute top-0 left-0 w-full h-full bg-[url('https://www.transparenttextures.com/patterns/stardust.png')] opacity-30 pointer-events-none" />

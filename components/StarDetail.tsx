@@ -1,4 +1,5 @@
 import React, { useRef, useState } from 'react';
+import html2canvas from 'html2canvas';
 import { StarData } from '../types';
 import { useI18n } from '../i18n';
 
@@ -10,169 +11,52 @@ interface StarDetailProps {
 const StarDetail: React.FC<StarDetailProps> = ({ star, onClose }) => {
   const { t } = useI18n();
   const cardRef = useRef<HTMLDivElement>(null);
+  const downloadRef = useRef<HTMLDivElement>(null);
   const [isDownloading, setIsDownloading] = useState(false);
 
   if (!star) return null;
 
+  const color = star.aiResponse.sentimentColor;
+
   const handleDownload = async () => {
-    if (isDownloading) return;
+    if (!downloadRef.current || isDownloading) return;
     setIsDownloading(true);
 
     try {
-      // Create a pure canvas-based image without html2canvas
-      const canvas = document.createElement('canvas');
-      const ctx = canvas.getContext('2d')!;
-      const scale = 2;
-      const width = 400;
-      const height = 500;
-
-      canvas.width = width * scale;
-      canvas.height = height * scale;
-      ctx.scale(scale, scale);
-
-      // Background gradient
-      const gradient = ctx.createLinearGradient(0, 0, width, height);
-      gradient.addColorStop(0, '#14141e');
-      gradient.addColorStop(1, '#0a0a0f');
-      ctx.fillStyle = gradient;
-      ctx.fillRect(0, 0, width, height);
-
-      // Accent glow
-      const glowGradient = ctx.createRadialGradient(width - 50, 50, 0, width - 50, 50, 150);
-      glowGradient.addColorStop(0, star.aiResponse.sentimentColor + '40');
-      glowGradient.addColorStop(1, 'transparent');
-      ctx.fillStyle = glowGradient;
-      ctx.fillRect(0, 0, width, height);
-
-      // Star icon circle
-      ctx.beginPath();
-      ctx.arc(width / 2, 70, 40, 0, Math.PI * 2);
-      ctx.strokeStyle = star.aiResponse.sentimentColor;
-      ctx.lineWidth = 2;
-      ctx.stroke();
-
-      // Star symbol
-      ctx.fillStyle = '#ffffff';
-      ctx.font = '24px Arial';
-      ctx.textAlign = 'center';
-      ctx.fillText('★', width / 2, 78);
-
-      // Category badge
-      ctx.fillStyle = star.aiResponse.sentimentColor;
-      ctx.font = 'bold 10px Arial';
-      ctx.fillText(star.aiResponse.category.toUpperCase(), width / 2, 130);
-
-      // Original text (quote)
-      ctx.fillStyle = '#ffffff';
-      ctx.font = 'italic 18px Georgia, serif';
-      const quote = `"${star.originalText}"`;
-      const maxWidth = width - 60;
-      const lines = wrapText(ctx, quote, maxWidth);
-      let y = 165;
-      lines.forEach(line => {
-        ctx.fillText(line, width / 2, y);
-        y += 24;
+      const canvas = await html2canvas(downloadRef.current, {
+        backgroundColor: '#0a0a0f',
+        scale: 2,
+        useCORS: true,
+        logging: false,
       });
 
-      // Divider line
-      y += 10;
-      ctx.strokeStyle = 'rgba(255,255,255,0.2)';
-      ctx.lineWidth = 1;
-      ctx.beginPath();
-      ctx.moveTo(80, y);
-      ctx.lineTo(width - 80, y);
-      ctx.stroke();
-      y += 25;
-
-      // Info grid
-      ctx.font = '8px Arial';
-      ctx.fillStyle = 'rgba(255,255,255,0.4)';
-      const gridY = y;
-      ctx.fillText(t('archetype').toUpperCase(), width / 6, gridY);
-      ctx.fillText(t('distance').toUpperCase(), width / 2, gridY);
-      ctx.fillText(t('resonance').toUpperCase(), (width * 5) / 6, gridY);
-
-      ctx.font = '11px Arial';
-      ctx.fillStyle = 'rgba(255,255,255,0.9)';
-      ctx.fillText(star.aiResponse.archetype, width / 6, gridY + 18);
-      ctx.fillText(star.aiResponse.distance, width / 2, gridY + 18);
-      ctx.fillText(star.aiResponse.frequency, (width * 5) / 6, gridY + 18);
-      y = gridY + 45;
-
-      // Blessing text
-      ctx.fillStyle = 'rgba(200,200,220,0.9)';
-      ctx.font = 'italic 13px Georgia, serif';
-      ctx.textAlign = 'left';
-      const blessingLines = wrapText(ctx, star.aiResponse.blessing, maxWidth - 20);
-      // Left border
-      ctx.strokeStyle = star.aiResponse.sentimentColor;
-      ctx.lineWidth = 2;
-      ctx.beginPath();
-      ctx.moveTo(35, y);
-      ctx.lineTo(35, y + blessingLines.length * 20);
-      ctx.stroke();
-
-      blessingLines.forEach(line => {
-        ctx.fillText(line, 45, y + 5);
-        y += 20;
-      });
-
-      // Watermark
-      ctx.textAlign = 'center';
-      ctx.fillStyle = 'rgba(255,255,255,0.3)';
-      ctx.font = '10px Arial';
-      ctx.fillText('thanksgiving.node404.fun', width / 2, height - 20);
-
-      // Download
-      const dataUrl = canvas.toDataURL('image/png');
-      const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent);
-
-      if (isIOS) {
-        const newWindow = window.open();
-        if (newWindow) {
-          newWindow.document.write(`
-            <html><body style="margin:0;display:flex;justify-content:center;align-items:center;min-height:100vh;background:#000;">
-              <div style="text-align:center;">
-                <img src="${dataUrl}" style="max-width:100%;"/>
-                <p style="color:#fff;margin-top:20px;">长按图片保存</p>
-              </div>
-            </body></html>
-          `);
+      // Always use direct download
+      canvas.toBlob((blob) => {
+        if (!blob) {
+          alert('生成图片失败，请重试');
+          setIsDownloading(false);
+          return;
         }
-      } else {
+
+        const url = URL.createObjectURL(blob);
         const link = document.createElement('a');
         link.download = `gratitude-star-${star.id}.png`;
-        link.href = dataUrl;
+        link.href = url;
+        link.style.display = 'none';
         document.body.appendChild(link);
         link.click();
-        document.body.removeChild(link);
-      }
+
+        setTimeout(() => {
+          document.body.removeChild(link);
+          URL.revokeObjectURL(url);
+          setIsDownloading(false);
+        }, 200);
+      }, 'image/png');
     } catch (error) {
       console.error('Failed to download:', error);
-      alert('下载失败，请重试');
-    } finally {
+      alert('下载失败: ' + (error instanceof Error ? error.message : '请重试'));
       setIsDownloading(false);
     }
-  };
-
-  // Helper function to wrap text
-  const wrapText = (ctx: CanvasRenderingContext2D, text: string, maxWidth: number): string[] => {
-    const words = text.split('');
-    const lines: string[] = [];
-    let currentLine = '';
-
-    for (const char of words) {
-      const testLine = currentLine + char;
-      const metrics = ctx.measureText(testLine);
-      if (metrics.width > maxWidth && currentLine) {
-        lines.push(currentLine);
-        currentLine = char;
-      } else {
-        currentLine = testLine;
-      }
-    }
-    if (currentLine) lines.push(currentLine);
-    return lines;
   };
 
   return (
@@ -181,18 +65,130 @@ const StarDetail: React.FC<StarDetailProps> = ({ star, onClose }) => {
         className="absolute inset-0 bg-black/70 backdrop-blur-md transition-opacity duration-500"
         onClick={onClose}
       />
+
+      {/* Hidden element for download - uses pure inline styles, no Tailwind */}
+      <div
+        ref={downloadRef}
+        style={{
+          position: 'fixed',
+          left: '-9999px',
+          top: 0,
+          width: '400px',
+          padding: '32px',
+          borderRadius: '24px',
+          background: 'linear-gradient(135deg, rgb(20,20,30) 0%, rgb(10,10,15) 100%)',
+          boxShadow: `0 0 100px ${color}33`,
+          fontFamily: 'system-ui, -apple-system, sans-serif',
+        }}
+      >
+        <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', textAlign: 'center', gap: '24px' }}>
+          {/* Star Icon */}
+          <div style={{
+            width: '80px',
+            height: '80px',
+            borderRadius: '50%',
+            border: `2px solid ${color}`,
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            backgroundColor: 'rgba(0,0,0,0.3)',
+          }}>
+            <span style={{ fontSize: '32px', color: '#fff' }}>★</span>
+          </div>
+
+          {/* Category */}
+          <span style={{
+            fontSize: '10px',
+            fontWeight: 'bold',
+            textTransform: 'uppercase',
+            letterSpacing: '0.2em',
+            padding: '6px 16px',
+            borderRadius: '20px',
+            color: color,
+            backgroundColor: `${color}22`,
+            border: `1px solid ${color}44`,
+          }}>
+            {star.aiResponse.category}
+          </span>
+
+          {/* Quote */}
+          <h2 style={{
+            fontSize: '24px',
+            fontWeight: 300,
+            color: '#ffffff',
+            fontStyle: 'italic',
+            lineHeight: 1.4,
+            margin: 0,
+          }}>
+            "{star.originalText}"
+          </h2>
+
+          {/* Divider */}
+          <div style={{
+            width: '60%',
+            height: '1px',
+            background: 'linear-gradient(to right, transparent, rgba(255,255,255,0.2), transparent)',
+          }} />
+
+          {/* Info Grid */}
+          <div style={{ display: 'flex', width: '100%', gap: '12px' }}>
+            {[
+              { label: t('archetype'), value: star.aiResponse.archetype },
+              { label: t('distance'), value: star.aiResponse.distance },
+              { label: t('resonance'), value: star.aiResponse.frequency },
+            ].map((item, i) => (
+              <div key={i} style={{
+                flex: 1,
+                padding: '12px 8px',
+                borderRadius: '12px',
+                backgroundColor: 'rgba(255,255,255,0.05)',
+                border: '1px solid rgba(255,255,255,0.05)',
+              }}>
+                <div style={{ fontSize: '8px', color: 'rgba(255,255,255,0.4)', textTransform: 'uppercase', letterSpacing: '0.1em', marginBottom: '4px' }}>
+                  {item.label}
+                </div>
+                <div style={{ fontSize: '11px', color: 'rgba(255,255,255,0.9)', fontWeight: 600 }}>
+                  {item.value}
+                </div>
+              </div>
+            ))}
+          </div>
+
+          {/* Blessing */}
+          <p style={{
+            fontSize: '14px',
+            color: 'rgba(200,200,220,0.9)',
+            lineHeight: 1.6,
+            fontStyle: 'italic',
+            borderLeft: `2px solid ${color}`,
+            paddingLeft: '16px',
+            textAlign: 'left',
+            margin: 0,
+            width: '100%',
+          }}>
+            {star.aiResponse.blessing}
+          </p>
+
+          {/* Watermark */}
+          <div style={{ fontSize: '10px', color: 'rgba(255,255,255,0.3)' }}>
+            thanksgiving.node404.fun
+          </div>
+        </div>
+      </div>
+
+      {/* Visible card */}
       <div
         ref={cardRef}
         className="relative glass-panel rounded-2xl sm:rounded-3xl p-4 sm:p-8 max-w-lg w-full max-h-[90vh] overflow-y-auto border-t border-white/20 shadow-2xl"
         style={{
-          boxShadow: `0 0 100px ${star.aiResponse.sentimentColor}20`,
+          boxShadow: `0 0 100px ${color}20`,
           background: 'linear-gradient(135deg, rgba(20,20,30,0.95) 0%, rgba(10,10,15,0.98) 100%)'
         }}
       >
         {/* Background Accent */}
         <div
           className="absolute -top-20 -right-20 w-64 h-64 rounded-full blur-[80px] opacity-20 pointer-events-none"
-          style={{ backgroundColor: star.aiResponse.sentimentColor }}
+          style={{ backgroundColor: color }}
         />
 
         {/* Close Button */}
@@ -212,11 +208,11 @@ const StarDetail: React.FC<StarDetailProps> = ({ star, onClose }) => {
           <div className="relative">
             <div
               className="w-16 h-16 sm:w-24 sm:h-24 rounded-full blur-xl animate-pulse absolute inset-0"
-              style={{ backgroundColor: star.aiResponse.sentimentColor }}
+              style={{ backgroundColor: color }}
             />
             <div
               className="w-16 h-16 sm:w-24 sm:h-24 rounded-full relative flex items-center justify-center border-2 border-white/20 bg-black/20 backdrop-blur-sm"
-              style={{ borderColor: star.aiResponse.sentimentColor }}
+              style={{ borderColor: color }}
             >
               <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6 sm:h-8 sm:w-8 text-white drop-shadow-[0_0_10px_rgba(255,255,255,0.8)]" fill="currentColor" viewBox="0 0 24 24">
                 <path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/>
@@ -227,7 +223,7 @@ const StarDetail: React.FC<StarDetailProps> = ({ star, onClose }) => {
           <div className="space-y-2 sm:space-y-3">
             <span
               className="text-[10px] sm:text-xs font-bold uppercase tracking-[0.15em] sm:tracking-[0.2em] px-3 py-1 sm:px-4 sm:py-1.5 rounded-full border border-white/10 inline-block"
-              style={{ color: star.aiResponse.sentimentColor, backgroundColor: `${star.aiResponse.sentimentColor}15` }}
+              style={{ color: color, backgroundColor: `${color}15` }}
             >
               {star.aiResponse.category}
             </span>
@@ -255,7 +251,7 @@ const StarDetail: React.FC<StarDetailProps> = ({ star, onClose }) => {
           </div>
 
           <p className="text-sm sm:text-lg text-stardust leading-relaxed font-serif border-l-2 pl-3 sm:pl-4 text-left italic opacity-90"
-             style={{ borderColor: star.aiResponse.sentimentColor }}
+             style={{ borderColor: color }}
           >
             {star.aiResponse.blessing}
           </p>
