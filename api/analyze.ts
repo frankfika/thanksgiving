@@ -72,7 +72,12 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     if (!response.ok) {
       const errorText = await response.text();
       console.error('DeepSeek API error:', response.status, errorText);
-      return res.status(response.status).json({ error: 'DeepSeek API request failed' });
+      return res.status(response.status).json({
+        error: 'DeepSeek API request failed',
+        status: response.status,
+        detail: errorText,
+        keyPrefix: apiKey.substring(0, 10)
+      });
     }
 
     const result = await response.json();
