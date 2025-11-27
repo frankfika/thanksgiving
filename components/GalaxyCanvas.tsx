@@ -44,37 +44,47 @@ const GalaxyCanvas: React.FC<GalaxyCanvasProps> = ({ stars, onStarClick }) => {
     // Initialize simulation with floating physics
     // Adjust parameters for mobile screens
     const isMobile = width < 768;
-    const collideRadius = isMobile ? 20 : 30;
+    const collideRadius = isMobile ? 15 : 30;
 
-    // Boundary padding to keep stars on screen
-    const padding = isMobile ? 80 : 120;
+    // Boundary padding - larger on mobile to keep stars more centered
+    const padding = isMobile ? 60 : 100;
+    const softPadding = isMobile ? 100 : 150; // Soft boundary starts earlier
 
-    // Initialize star positions randomly across the screen if not set
+    // Initialize star positions randomly across the safe area
     stars.forEach(star => {
-      if (star.x === undefined) star.x = padding + Math.random() * (width - padding * 2);
-      if (star.y === undefined) star.y = padding + Math.random() * (height - padding * 2);
+      if (star.x === undefined) star.x = softPadding + Math.random() * (width - softPadding * 2);
+      if (star.y === undefined) star.y = softPadding + Math.random() * (height - softPadding * 2);
     });
 
     if (!simulationRef.current) {
       simulationRef.current = d3.forceSimulation<StarData>(stars)
         // Very light repulsion to prevent overlap
-        .force("charge", d3.forceManyBody().strength(-10))
-        // No center force - let stars float freely
-        // Only collision detection to prevent overlap
-        .force("collide", d3.forceCollide().radius((d) => collideRadius + (d.aiResponse.brightness * 5)).strength(0.3))
-        // Soft boundary force to keep stars on screen
+        .force("charge", d3.forceManyBody().strength(-5))
+        // Light center force on mobile to keep stars from drifting too far
+        .force("centerX", d3.forceX(width / 2).strength(isMobile ? 0.003 : 0.001))
+        .force("centerY", d3.forceY(height / 2).strength(isMobile ? 0.003 : 0.001))
+        // Collision detection to prevent overlap
+        .force("collide", d3.forceCollide().radius((d) => collideRadius + (d.aiResponse.brightness * 3)).strength(0.2))
+        // Strong boundary force to keep stars on screen
         .force("boundary", () => {
           stars.forEach(star => {
             if (star.x !== undefined && star.y !== undefined) {
-              if (star.x < padding) star.vx = (star.vx || 0) + 0.5;
-              if (star.x > width - padding) star.vx = (star.vx || 0) - 0.5;
-              if (star.y < padding) star.vy = (star.vy || 0) + 0.5;
-              if (star.y > height - padding) star.vy = (star.vy || 0) - 0.5;
+              // Soft boundary - gentle push
+              if (star.x < softPadding) star.vx = (star.vx || 0) + 1;
+              if (star.x > width - softPadding) star.vx = (star.vx || 0) - 1;
+              if (star.y < softPadding) star.vy = (star.vy || 0) + 1;
+              if (star.y > height - softPadding) star.vy = (star.vy || 0) - 1;
+
+              // Hard boundary - force back immediately
+              if (star.x < padding) { star.x = padding; star.vx = Math.abs(star.vx || 0); }
+              if (star.x > width - padding) { star.x = width - padding; star.vx = -Math.abs(star.vx || 0); }
+              if (star.y < padding) { star.y = padding; star.vy = Math.abs(star.vy || 0); }
+              if (star.y > height - padding) { star.y = height - padding; star.vy = -Math.abs(star.vy || 0); }
             }
           });
         })
-        // Low velocity decay for smooth floating
-        .velocityDecay(0.02);
+        // Higher velocity decay for slower movement
+        .velocityDecay(isMobile ? 0.15 : 0.08);
     }
 
     const simulation = simulationRef.current;
@@ -83,20 +93,21 @@ const GalaxyCanvas: React.FC<GalaxyCanvasProps> = ({ stars, onStarClick }) => {
     simulation.alpha(0.3).alphaDecay(0.005).alphaMin(0.1).restart();
 
     // Add very gentle floating motion - slow and dreamy
+    const driftStrength = isMobile ? 0.05 : 0.1; // Weaker drift on mobile
     const orbitInterval = setInterval(() => {
       stars.forEach((star, i) => {
         if (!star.fx && !star.fy) {
-          const time = Date.now() * 0.0001; // Much slower time
+          const time = Date.now() * 0.00005; // Very slow time
           const uniqueOffset = i * 2.3; // Unique phase for each star
           // Very gentle drift
-          const driftX = Math.sin(time + uniqueOffset) * 0.15;
-          const driftY = Math.cos(time * 0.8 + uniqueOffset) * 0.15;
-          star.vx = (star.vx || 0) * 0.98 + driftX;
-          star.vy = (star.vy || 0) * 0.98 + driftY;
+          const driftX = Math.sin(time + uniqueOffset) * driftStrength;
+          const driftY = Math.cos(time * 0.8 + uniqueOffset) * driftStrength;
+          star.vx = (star.vx || 0) * 0.95 + driftX;
+          star.vy = (star.vy || 0) * 0.95 + driftY;
         }
       });
-      simulation.alpha(0.05).restart();
-    }, 100); 
+      simulation.alpha(0.03).restart();
+    }, 150); 
 
     const render = () => {
       // --- Render Stars ---
