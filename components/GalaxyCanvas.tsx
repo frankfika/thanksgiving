@@ -41,41 +41,40 @@ const GalaxyCanvas: React.FC<GalaxyCanvasProps> = ({ stars, onStarClick }) => {
       nodeGroup = svg.append("g").attr("class", "nodes");
     }
 
-    // Initialize simulation with smoother physics
+    // Initialize simulation with floating physics
     // Adjust parameters for mobile screens
     const isMobile = width < 768;
-    const chargeStrength = isMobile ? -15 : -50;
-    const collideRadius = isMobile ? 15 : 40;
-    const centerStrength = isMobile ? 0.15 : 0.02;
-    const positionStrength = isMobile ? 0.08 : 0.005;
+    const collideRadius = isMobile ? 20 : 30;
 
     // Boundary padding to keep stars on screen
-    const padding = isMobile ? 60 : 100;
+    const padding = isMobile ? 80 : 120;
+
+    // Initialize star positions randomly across the screen if not set
+    stars.forEach(star => {
+      if (star.x === undefined) star.x = padding + Math.random() * (width - padding * 2);
+      if (star.y === undefined) star.y = padding + Math.random() * (height - padding * 2);
+    });
 
     if (!simulationRef.current) {
       simulationRef.current = d3.forceSimulation<StarData>(stars)
-        // Reduced repulsion for a tighter galaxy
-        .force("charge", d3.forceManyBody().strength(chargeStrength))
-        // Stronger center pull on mobile to keep stars visible
-        .force("center", d3.forceCenter(width / 2, height / 2).strength(centerStrength))
-        // Smaller collision radius on mobile
-        .force("collide", d3.forceCollide().radius((d) => collideRadius + (d.aiResponse.brightness * (isMobile ? 5 : 10))).strength(0.6))
-        // Stronger position force on mobile with boundary constraints
-        .force("x", d3.forceX(width / 2).strength(positionStrength))
-        .force("y", d3.forceY(height / 2).strength(positionStrength))
-        // Add boundary force to keep stars on screen
+        // Very light repulsion to prevent overlap
+        .force("charge", d3.forceManyBody().strength(-10))
+        // No center force - let stars float freely
+        // Only collision detection to prevent overlap
+        .force("collide", d3.forceCollide().radius((d) => collideRadius + (d.aiResponse.brightness * 5)).strength(0.3))
+        // Soft boundary force to keep stars on screen
         .force("boundary", () => {
           stars.forEach(star => {
             if (star.x !== undefined && star.y !== undefined) {
-              if (star.x < padding) star.vx = (star.vx || 0) + 2;
-              if (star.x > width - padding) star.vx = (star.vx || 0) - 2;
-              if (star.y < padding) star.vy = (star.vy || 0) + 2;
-              if (star.y > height - padding) star.vy = (star.vy || 0) - 2;
+              if (star.x < padding) star.vx = (star.vx || 0) + 0.5;
+              if (star.x > width - padding) star.vx = (star.vx || 0) - 0.5;
+              if (star.y < padding) star.vy = (star.vy || 0) + 0.5;
+              if (star.y > height - padding) star.vy = (star.vy || 0) - 0.5;
             }
           });
         })
-        // Add velocity decay to simulate fluid resistance
-        .velocityDecay(0.4);
+        // Low velocity decay for smooth floating
+        .velocityDecay(0.02);
     }
 
     const simulation = simulationRef.current;
@@ -83,17 +82,20 @@ const GalaxyCanvas: React.FC<GalaxyCanvasProps> = ({ stars, onStarClick }) => {
     // Keep simulation running continuously with low alpha
     simulation.alpha(0.3).alphaDecay(0.005).alphaMin(0.1).restart();
 
-    // Add continuous gentle motion
+    // Add very gentle floating motion - slow and dreamy
     const orbitInterval = setInterval(() => {
       stars.forEach((star, i) => {
         if (!star.fx && !star.fy) {
-          const angle = Date.now() * 0.0001 + i * 0.5;
-          const drift = Math.sin(angle) * 0.3;
-          star.vx = (star.vx || 0) + drift;
-          star.vy = (star.vy || 0) + Math.cos(angle) * 0.3;
+          const time = Date.now() * 0.0001; // Much slower time
+          const uniqueOffset = i * 2.3; // Unique phase for each star
+          // Very gentle drift
+          const driftX = Math.sin(time + uniqueOffset) * 0.15;
+          const driftY = Math.cos(time * 0.8 + uniqueOffset) * 0.15;
+          star.vx = (star.vx || 0) * 0.98 + driftX;
+          star.vy = (star.vy || 0) * 0.98 + driftY;
         }
       });
-      simulation.alpha(0.15).restart();
+      simulation.alpha(0.05).restart();
     }, 100); 
 
     const render = () => {

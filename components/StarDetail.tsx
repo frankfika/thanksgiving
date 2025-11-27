@@ -1,5 +1,4 @@
 import React, { useRef, useState } from 'react';
-import html2canvas from 'html2canvas';
 import { StarData } from '../types';
 import { useI18n } from '../i18n';
 
@@ -16,29 +15,164 @@ const StarDetail: React.FC<StarDetailProps> = ({ star, onClose }) => {
   if (!star) return null;
 
   const handleDownload = async () => {
-    if (!cardRef.current || isDownloading) return;
-
+    if (isDownloading) return;
     setIsDownloading(true);
+
     try {
-      const canvas = await html2canvas(cardRef.current, {
-        backgroundColor: '#0a0a0f',
-        scale: 2, // Higher resolution
-        useCORS: true,
-        logging: false,
+      // Create a pure canvas-based image without html2canvas
+      const canvas = document.createElement('canvas');
+      const ctx = canvas.getContext('2d')!;
+      const scale = 2;
+      const width = 400;
+      const height = 500;
+
+      canvas.width = width * scale;
+      canvas.height = height * scale;
+      ctx.scale(scale, scale);
+
+      // Background gradient
+      const gradient = ctx.createLinearGradient(0, 0, width, height);
+      gradient.addColorStop(0, '#14141e');
+      gradient.addColorStop(1, '#0a0a0f');
+      ctx.fillStyle = gradient;
+      ctx.fillRect(0, 0, width, height);
+
+      // Accent glow
+      const glowGradient = ctx.createRadialGradient(width - 50, 50, 0, width - 50, 50, 150);
+      glowGradient.addColorStop(0, star.aiResponse.sentimentColor + '40');
+      glowGradient.addColorStop(1, 'transparent');
+      ctx.fillStyle = glowGradient;
+      ctx.fillRect(0, 0, width, height);
+
+      // Star icon circle
+      ctx.beginPath();
+      ctx.arc(width / 2, 70, 40, 0, Math.PI * 2);
+      ctx.strokeStyle = star.aiResponse.sentimentColor;
+      ctx.lineWidth = 2;
+      ctx.stroke();
+
+      // Star symbol
+      ctx.fillStyle = '#ffffff';
+      ctx.font = '24px Arial';
+      ctx.textAlign = 'center';
+      ctx.fillText('★', width / 2, 78);
+
+      // Category badge
+      ctx.fillStyle = star.aiResponse.sentimentColor;
+      ctx.font = 'bold 10px Arial';
+      ctx.fillText(star.aiResponse.category.toUpperCase(), width / 2, 130);
+
+      // Original text (quote)
+      ctx.fillStyle = '#ffffff';
+      ctx.font = 'italic 18px Georgia, serif';
+      const quote = `"${star.originalText}"`;
+      const maxWidth = width - 60;
+      const lines = wrapText(ctx, quote, maxWidth);
+      let y = 165;
+      lines.forEach(line => {
+        ctx.fillText(line, width / 2, y);
+        y += 24;
       });
 
-      const link = document.createElement('a');
-      link.download = `gratitude-star-${star.id}.png`;
-      link.href = canvas.toDataURL('image/png');
-      link.style.display = 'none';
-      document.body.appendChild(link);
-      link.click();
-      document.body.removeChild(link);
+      // Divider line
+      y += 10;
+      ctx.strokeStyle = 'rgba(255,255,255,0.2)';
+      ctx.lineWidth = 1;
+      ctx.beginPath();
+      ctx.moveTo(80, y);
+      ctx.lineTo(width - 80, y);
+      ctx.stroke();
+      y += 25;
+
+      // Info grid
+      ctx.font = '8px Arial';
+      ctx.fillStyle = 'rgba(255,255,255,0.4)';
+      const gridY = y;
+      ctx.fillText(t('archetype').toUpperCase(), width / 6, gridY);
+      ctx.fillText(t('distance').toUpperCase(), width / 2, gridY);
+      ctx.fillText(t('resonance').toUpperCase(), (width * 5) / 6, gridY);
+
+      ctx.font = '11px Arial';
+      ctx.fillStyle = 'rgba(255,255,255,0.9)';
+      ctx.fillText(star.aiResponse.archetype, width / 6, gridY + 18);
+      ctx.fillText(star.aiResponse.distance, width / 2, gridY + 18);
+      ctx.fillText(star.aiResponse.frequency, (width * 5) / 6, gridY + 18);
+      y = gridY + 45;
+
+      // Blessing text
+      ctx.fillStyle = 'rgba(200,200,220,0.9)';
+      ctx.font = 'italic 13px Georgia, serif';
+      ctx.textAlign = 'left';
+      const blessingLines = wrapText(ctx, star.aiResponse.blessing, maxWidth - 20);
+      // Left border
+      ctx.strokeStyle = star.aiResponse.sentimentColor;
+      ctx.lineWidth = 2;
+      ctx.beginPath();
+      ctx.moveTo(35, y);
+      ctx.lineTo(35, y + blessingLines.length * 20);
+      ctx.stroke();
+
+      blessingLines.forEach(line => {
+        ctx.fillText(line, 45, y + 5);
+        y += 20;
+      });
+
+      // Watermark
+      ctx.textAlign = 'center';
+      ctx.fillStyle = 'rgba(255,255,255,0.3)';
+      ctx.font = '10px Arial';
+      ctx.fillText('thanksgiving.node404.fun', width / 2, height - 20);
+
+      // Download
+      const dataUrl = canvas.toDataURL('image/png');
+      const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent);
+
+      if (isIOS) {
+        const newWindow = window.open();
+        if (newWindow) {
+          newWindow.document.write(`
+            <html><body style="margin:0;display:flex;justify-content:center;align-items:center;min-height:100vh;background:#000;">
+              <div style="text-align:center;">
+                <img src="${dataUrl}" style="max-width:100%;"/>
+                <p style="color:#fff;margin-top:20px;">长按图片保存</p>
+              </div>
+            </body></html>
+          `);
+        }
+      } else {
+        const link = document.createElement('a');
+        link.download = `gratitude-star-${star.id}.png`;
+        link.href = dataUrl;
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+      }
     } catch (error) {
       console.error('Failed to download:', error);
+      alert('下载失败，请重试');
     } finally {
       setIsDownloading(false);
     }
+  };
+
+  // Helper function to wrap text
+  const wrapText = (ctx: CanvasRenderingContext2D, text: string, maxWidth: number): string[] => {
+    const words = text.split('');
+    const lines: string[] = [];
+    let currentLine = '';
+
+    for (const char of words) {
+      const testLine = currentLine + char;
+      const metrics = ctx.measureText(testLine);
+      if (metrics.width > maxWidth && currentLine) {
+        lines.push(currentLine);
+        currentLine = char;
+      } else {
+        currentLine = testLine;
+      }
+    }
+    if (currentLine) lines.push(currentLine);
+    return lines;
   };
 
   return (
