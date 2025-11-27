@@ -20,7 +20,13 @@ const GalaxyCanvas: React.FC<GalaxyCanvasProps> = ({ stars, onStarClick }) => {
     const height = window.innerHeight;
     const svg = d3.select(svgRef.current);
 
-    svg.attr("width", width).attr("height", height);
+    // Set explicit dimensions and viewBox for mobile compatibility
+    svg
+      .attr("width", width)
+      .attr("height", height)
+      .attr("viewBox", `0 0 ${width} ${height}`)
+      .style("width", "100%")
+      .style("height", "100%");
 
     // Create container groups for layering
     // 1. Constellation lines (bottom)
@@ -78,8 +84,9 @@ const GalaxyCanvas: React.FC<GalaxyCanvasProps> = ({ stars, onStarClick }) => {
         .append("g")
         .attr("class", "star-node")
         .style("cursor", "pointer")
-        .on("click", (event, d) => {
+        .on("click touchend", (event, d) => {
           event.stopPropagation();
+          event.preventDefault();
           onStarClick(d);
         })
         .on("mouseenter", (event, d) => {
