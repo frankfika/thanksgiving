@@ -19,6 +19,8 @@ const translations = {
     rateLimitExceeded: '今日发送次数已达上限（20次）',
     remaining: '今日剩余',
     times: '次',
+    download: '保存图片',
+    downloading: '保存中...',
   },
   en: {
     title: 'GRATITUDE ORBIT',
@@ -36,6 +38,8 @@ const translations = {
     rateLimitExceeded: 'Daily limit reached (20 times)',
     remaining: 'Remaining today',
     times: '',
+    download: 'Save Image',
+    downloading: 'Saving...',
   }
 };
 

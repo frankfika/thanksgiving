@@ -44,10 +44,13 @@ const GalaxyCanvas: React.FC<GalaxyCanvasProps> = ({ stars, onStarClick }) => {
     // Initialize simulation with smoother physics
     // Adjust parameters for mobile screens
     const isMobile = width < 768;
-    const chargeStrength = isMobile ? -20 : -50;
-    const collideRadius = isMobile ? 25 : 40;
-    const centerStrength = isMobile ? 0.08 : 0.02;
-    const positionStrength = isMobile ? 0.03 : 0.005;
+    const chargeStrength = isMobile ? -15 : -50;
+    const collideRadius = isMobile ? 15 : 40;
+    const centerStrength = isMobile ? 0.15 : 0.02;
+    const positionStrength = isMobile ? 0.08 : 0.005;
+
+    // Boundary padding to keep stars on screen
+    const padding = isMobile ? 60 : 100;
 
     if (!simulationRef.current) {
       simulationRef.current = d3.forceSimulation<StarData>(stars)
@@ -56,10 +59,21 @@ const GalaxyCanvas: React.FC<GalaxyCanvasProps> = ({ stars, onStarClick }) => {
         // Stronger center pull on mobile to keep stars visible
         .force("center", d3.forceCenter(width / 2, height / 2).strength(centerStrength))
         // Smaller collision radius on mobile
-        .force("collide", d3.forceCollide().radius((d) => collideRadius + (d.aiResponse.brightness * 10)).strength(0.6))
-        // Stronger position force on mobile
+        .force("collide", d3.forceCollide().radius((d) => collideRadius + (d.aiResponse.brightness * (isMobile ? 5 : 10))).strength(0.6))
+        // Stronger position force on mobile with boundary constraints
         .force("x", d3.forceX(width / 2).strength(positionStrength))
         .force("y", d3.forceY(height / 2).strength(positionStrength))
+        // Add boundary force to keep stars on screen
+        .force("boundary", () => {
+          stars.forEach(star => {
+            if (star.x !== undefined && star.y !== undefined) {
+              if (star.x < padding) star.vx = (star.vx || 0) + 2;
+              if (star.x > width - padding) star.vx = (star.vx || 0) - 2;
+              if (star.y < padding) star.vy = (star.vy || 0) + 2;
+              if (star.y > height - padding) star.vy = (star.vy || 0) - 2;
+            }
+          });
+        })
         // Add velocity decay to simulate fluid resistance
         .velocityDecay(0.4);
     }
@@ -144,6 +158,9 @@ const GalaxyCanvas: React.FC<GalaxyCanvasProps> = ({ stars, onStarClick }) => {
             .on("end", dragended)
         );
 
+      // Size multiplier for mobile
+      const sizeMult = isMobile ? 0.5 : 1;
+
       // Outer Glow (pulsing)
       enter.append("circle")
         .attr("r", 0)
@@ -151,14 +168,14 @@ const GalaxyCanvas: React.FC<GalaxyCanvasProps> = ({ stars, onStarClick }) => {
         .attr("fill", (d) => d.aiResponse.sentimentColor)
         .attr("opacity", 0.08)
         .transition().duration(1500).ease(d3.easeElasticOut)
-        .attr("r", (d) => 35 + (d.aiResponse.brightness * 35));
+        .attr("r", (d) => (35 + (d.aiResponse.brightness * 35)) * sizeMult);
 
       // Add pulse animation to outer glow
       enter.select(".outer-glow")
         .append("animate")
         .attr("attributeName", "r")
         .attr("values", (d: StarData) => {
-          const base = 35 + (d.aiResponse.brightness * 35);
+          const base = (35 + (d.aiResponse.brightness * 35)) * sizeMult;
           return `${base};${base * 1.3};${base}`;
         })
         .attr("dur", () => `${3 + Math.random() * 2}s`)
@@ -171,7 +188,7 @@ const GalaxyCanvas: React.FC<GalaxyCanvasProps> = ({ stars, onStarClick }) => {
         .attr("fill", (d) => d.aiResponse.sentimentColor)
         .attr("opacity", 0.2)
         .transition().duration(2000).ease(d3.easeElasticOut)
-        .attr("r", (d) => 20 + (d.aiResponse.brightness * 25));
+        .attr("r", (d) => (20 + (d.aiResponse.brightness * 25)) * sizeMult);
 
       // Add breathing animation to glow
       enter.select(".glow")
@@ -189,7 +206,7 @@ const GalaxyCanvas: React.FC<GalaxyCanvasProps> = ({ stars, onStarClick }) => {
         .attr("opacity", 0.95)
         .style("filter", "blur(1px)")
         .transition().duration(2000).ease(d3.easeElasticOut)
-        .attr("r", (d) => 6 + (d.aiResponse.brightness * 10));
+        .attr("r", (d) => (6 + (d.aiResponse.brightness * 10)) * sizeMult);
 
       // Add Twinkle Animation to core
       enter.select(".core")
@@ -206,7 +223,7 @@ const GalaxyCanvas: React.FC<GalaxyCanvasProps> = ({ stars, onStarClick }) => {
         .attr("fill", "#ffffff")
         .attr("opacity", 0.8)
         .transition().duration(2000).ease(d3.easeElasticOut)
-        .attr("r", (d) => 2 + (d.aiResponse.brightness * 3));
+        .attr("r", (d) => (2 + (d.aiResponse.brightness * 3)) * sizeMult);
 
       // Update positions
       nodes.merge(enter)

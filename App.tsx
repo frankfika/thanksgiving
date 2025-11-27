@@ -182,7 +182,7 @@ const App: React.FC = () => {
       )}
 
       {/* Remaining Count */}
-      <div className="absolute bottom-20 sm:bottom-24 left-1/2 transform -translate-x-1/2 text-white/40 text-[10px] sm:text-xs z-10">
+      <div className="fixed bottom-16 sm:absolute sm:bottom-24 left-1/2 transform -translate-x-1/2 text-white/40 text-[10px] sm:text-xs z-10">
         {t('remaining')}: {remaining} {t('times')}
       </div>
     </div>

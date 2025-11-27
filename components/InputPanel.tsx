@@ -20,8 +20,10 @@ const InputPanel: React.FC<InputPanelProps> = ({ appState, onSubmit }) => {
   };
 
   return (
-    <div className="absolute bottom-4 sm:bottom-8 left-1/2 transform -translate-x-1/2 w-full max-w-lg px-3 sm:px-4 z-20">
-      <div className="glass-panel rounded-2xl p-2 shadow-2xl shadow-purple-900/20">
+    <div
+      className="fixed bottom-0 left-0 right-0 pb-[env(safe-area-inset-bottom)] sm:absolute sm:bottom-8 sm:left-1/2 sm:right-auto sm:transform sm:-translate-x-1/2 w-full sm:max-w-lg px-2 sm:px-4 z-20"
+    >
+      <div className="glass-panel rounded-t-2xl sm:rounded-2xl p-2 shadow-2xl shadow-purple-900/20 mb-2 sm:mb-0">
         <form onSubmit={handleSubmit} className="flex items-center gap-2">
           <input
             type="text"

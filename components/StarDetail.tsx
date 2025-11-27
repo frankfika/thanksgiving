@@ -1,4 +1,5 @@
-import React from 'react';
+import React, { useRef, useState } from 'react';
+import html2canvas from 'html2canvas';
 import { StarData } from '../types';
 import { useI18n } from '../i18n';
 
@@ -9,7 +10,33 @@ interface StarDetailProps {
 
 const StarDetail: React.FC<StarDetailProps> = ({ star, onClose }) => {
   const { t } = useI18n();
+  const cardRef = useRef<HTMLDivElement>(null);
+  const [isDownloading, setIsDownloading] = useState(false);
+
   if (!star) return null;
+
+  const handleDownload = async () => {
+    if (!cardRef.current || isDownloading) return;
+
+    setIsDownloading(true);
+    try {
+      const canvas = await html2canvas(cardRef.current, {
+        backgroundColor: '#0a0a0f',
+        scale: 2, // Higher resolution
+        useCORS: true,
+        logging: false,
+      });
+
+      const link = document.createElement('a');
+      link.download = `gratitude-star-${star.id}.png`;
+      link.href = canvas.toDataURL('image/png');
+      link.click();
+    } catch (error) {
+      console.error('Failed to download:', error);
+    } finally {
+      setIsDownloading(false);
+    }
+  };
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-2 sm:p-4">
@@ -18,9 +45,11 @@ const StarDetail: React.FC<StarDetailProps> = ({ star, onClose }) => {
         onClick={onClose}
       />
       <div
+        ref={cardRef}
         className="relative glass-panel rounded-2xl sm:rounded-3xl p-4 sm:p-8 max-w-lg w-full max-h-[90vh] overflow-y-auto border-t border-white/20 shadow-2xl"
         style={{
-          boxShadow: `0 0 100px ${star.aiResponse.sentimentColor}20`
+          boxShadow: `0 0 100px ${star.aiResponse.sentimentColor}20`,
+          background: 'linear-gradient(135deg, rgba(20,20,30,0.95) 0%, rgba(10,10,15,0.98) 100%)'
         }}
       >
         {/* Background Accent */}
@@ -29,7 +58,7 @@ const StarDetail: React.FC<StarDetailProps> = ({ star, onClose }) => {
           style={{ backgroundColor: star.aiResponse.sentimentColor }}
         />
 
-        {/* Close Button - larger touch target on mobile */}
+        {/* Close Button */}
         <button
           onClick={onClose}
           className="absolute top-3 right-3 sm:top-6 sm:right-6 w-10 h-10 flex items-center justify-center text-white/60 hover:text-white hover:bg-white/10 rounded-full transition-all duration-300 z-20"
@@ -93,6 +122,35 @@ const StarDetail: React.FC<StarDetailProps> = ({ star, onClose }) => {
           >
             {star.aiResponse.blessing}
           </p>
+
+          {/* Download Button */}
+          <button
+            onClick={handleDownload}
+            disabled={isDownloading}
+            className="flex items-center gap-2 px-4 sm:px-6 py-2 sm:py-3 rounded-full bg-gradient-to-r from-amber-500/80 to-orange-600/80 text-white text-sm sm:text-base font-medium hover:from-amber-500 hover:to-orange-600 transition-all duration-300 disabled:opacity-50"
+          >
+            {isDownloading ? (
+              <>
+                <svg className="animate-spin h-5 w-5" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                  <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                  <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                </svg>
+                <span>{t('downloading') || 'Downloading...'}</span>
+              </>
+            ) : (
+              <>
+                <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
+                </svg>
+                <span>{t('download') || 'Save Image'}</span>
+              </>
+            )}
+          </button>
+
+          {/* Watermark for downloaded image */}
+          <div className="text-white/30 text-[10px] sm:text-xs">
+            thanksgiving.node404.fun
+          </div>
 
         </div>
       </div>
