@@ -16,6 +16,9 @@ const translations = {
     distance: '距离',
     resonance: '共振',
     missingKey: '缺少 DEEPSEEK_KEY 环境变量，AI 功能将无法使用。',
+    rateLimitExceeded: '今日发送次数已达上限（20次）',
+    remaining: '今日剩余',
+    times: '次',
   },
   en: {
     title: 'GRATITUDE ORBIT',
@@ -30,6 +33,9 @@ const translations = {
     distance: 'Distance',
     resonance: 'Resonance',
     missingKey: 'Missing DEEPSEEK_KEY in environment variables. AI features will fail.',
+    rateLimitExceeded: 'Daily limit reached (20 times)',
+    remaining: 'Remaining today',
+    times: '',
   }
 };
 

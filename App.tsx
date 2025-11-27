@@ -5,16 +5,18 @@ import StarDetail from './components/StarDetail';
 import { analyzeGratitude, hasValidApiKey } from './services/deepseekService';
 import { StarData, AppState } from './types';
 import { useI18n } from './i18n';
+import { checkRateLimit, incrementCount, getRemainingCount } from './services/rateLimit';
+import { fetchStars, saveStar } from './services/starsApi';
 
-// Pre-fill with some initial stars so the galaxy isn't empty
-const INITIAL_STARS: StarData[] = [
+// Default stars as fallback
+const DEFAULT_STARS: StarData[] = [
   {
     id: 'init-1',
     originalText: "I am thankful for my healthy family",
-    aiResponse: { 
-      category: "Family", 
-      sentimentColor: "#FFD700", 
-      blessing: "Family is the root that anchors us in the storm of life; cherish their warmth.", 
+    aiResponse: {
+      category: "Family",
+      sentimentColor: "#FFD700",
+      blessing: "Family is the root that anchors us in the storm of life; cherish their warmth.",
       brightness: 0.9,
       archetype: "The Guardian",
       distance: "12 Light Years",
@@ -23,57 +25,100 @@ const INITIAL_STARS: StarData[] = [
   },
   {
     id: 'init-2',
-    originalText: "Grateful for the warm coffee this morning",
-    aiResponse: { 
-      category: "Small Joys", 
-      sentimentColor: "#e67e22", 
-      blessing: "In the smallest sips, we taste the vast comfort of the universe.", 
-      brightness: 0.6,
-      archetype: "The Observer",
-      distance: "0.01 Light Years",
+    originalText: "感恩今天的温暖阳光",
+    aiResponse: {
+      category: "自然",
+      sentimentColor: "#e67e22",
+      blessing: "阳光是宇宙对你的微笑，每一缕光都承载着无尽的温暖。",
+      brightness: 0.7,
+      archetype: "观察者",
+      distance: "8.3 光分",
       frequency: "528 Hz"
     }
   },
   {
     id: 'init-3',
-    originalText: "Thankful for the code that runs without errors",
-    aiResponse: { 
-      category: "Career", 
-      sentimentColor: "#2ecc71", 
-      blessing: "Order from chaos is a divine act; may your logic always flow clear.", 
+    originalText: "Thankful for good friends",
+    aiResponse: {
+      category: "Friendship",
+      sentimentColor: "#9b59b6",
+      blessing: "Friends are stars in your personal galaxy; their light guides you through the darkest nights.",
+      brightness: 0.85,
+      archetype: "The Connector",
+      distance: "Heart's Distance",
+      frequency: "396 Hz"
+    }
+  },
+  {
+    id: 'init-4',
+    originalText: "感恩每一次成长的机会",
+    aiResponse: {
+      category: "成长",
+      sentimentColor: "#2ecc71",
+      blessing: "成长是灵魂的扩展，每一次挑战都是宇宙赐予的礼物。",
       brightness: 0.8,
-      archetype: "The Architect",
-      distance: "10101 Light Years",
-      frequency: "60 Hz"
+      archetype: "探索者",
+      distance: "无限远",
+      frequency: "741 Hz"
     }
   }
 ];
 
 const App: React.FC = () => {
-  const [stars, setStars] = useState<StarData[]>(INITIAL_STARS);
+  const [stars, setStars] = useState<StarData[]>(DEFAULT_STARS);
   const [appState, setAppState] = useState<AppState>(AppState.IDLE);
   const [selectedStar, setSelectedStar] = useState<StarData | null>(null);
   const [showIntro, setShowIntro] = useState(true);
   const [apiKeyExists, setApiKeyExists] = useState(true);
+  const [remaining, setRemaining] = useState(20);
+  const [rateLimitError, setRateLimitError] = useState(false);
   const { lang, setLang, t } = useI18n();
 
+  // Load shared stars and check rate limit on mount
   useEffect(() => {
     setApiKeyExists(hasValidApiKey());
+    setRemaining(getRemainingCount());
+
+    // Fetch shared stars from API and merge with defaults
+    fetchStars().then((sharedStars) => {
+      if (sharedStars.length > 0) {
+        // Merge: default stars + API stars (avoid duplicates by id)
+        const existingIds = new Set(sharedStars.map(s => s.id));
+        const uniqueDefaults = DEFAULT_STARS.filter(s => !existingIds.has(s.id));
+        setStars([...uniqueDefaults, ...sharedStars]);
+      }
+    });
   }, []);
 
   // Handle creating a new star
   const handleCreateStar = useCallback(async (text: string) => {
+    // Check rate limit
+    const { allowed } = checkRateLimit();
+    if (!allowed) {
+      setRateLimitError(true);
+      setTimeout(() => setRateLimitError(false), 3000);
+      return;
+    }
+
     setAppState(AppState.GENERATING);
     try {
       const newStar = await analyzeGratitude(text);
-      // Add the new star. Note: D3 handles the x/y initialization naturally.
+
+      // Save to shared API
+      await saveStar(newStar);
+
+      // Increment rate limit counter
+      incrementCount();
+      setRemaining(getRemainingCount());
+
+      // Add the new star locally
       setStars((prev) => [...prev, newStar]);
-      
-      // Auto-select the new star after a brief delay so the user sees the result
+
+      // Auto-select the new star after a brief delay
       setTimeout(() => {
         setSelectedStar(newStar);
       }, 800);
-      
+
     } catch (error) {
       console.error("Failed to create star", error);
     } finally {
@@ -139,6 +184,18 @@ const App: React.FC = () => {
           {t('missingKey')}
         </div>
       )}
+
+      {/* Rate Limit Error */}
+      {rateLimitError && (
+        <div className="absolute top-16 left-1/2 transform -translate-x-1/2 bg-orange-600/90 text-white px-4 py-2 rounded-lg text-sm z-50 animate-pulse">
+          {t('rateLimitExceeded')}
+        </div>
+      )}
+
+      {/* Remaining Count */}
+      <div className="absolute bottom-24 left-1/2 transform -translate-x-1/2 text-white/40 text-xs z-10">
+        {t('remaining')}: {remaining} {t('times')}
+      </div>
     </div>
   );
 };
