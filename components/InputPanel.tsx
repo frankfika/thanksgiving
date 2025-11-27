@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { AppState } from '../types';
+import { useI18n } from '../i18n';
 
 interface InputPanelProps {
   appState: AppState;
@@ -8,6 +9,7 @@ interface InputPanelProps {
 
 const InputPanel: React.FC<InputPanelProps> = ({ appState, onSubmit }) => {
   const [text, setText] = useState('');
+  const { t } = useI18n();
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -26,7 +28,7 @@ const InputPanel: React.FC<InputPanelProps> = ({ appState, onSubmit }) => {
             value={text}
             onChange={(e) => setText(e.target.value)}
             disabled={appState === AppState.GENERATING}
-            placeholder="What are you thankful for today?"
+            placeholder={t('placeholder')}
             className="flex-1 bg-transparent text-white placeholder-gray-400 px-4 py-3 outline-none border-none text-lg"
             maxLength={100}
           />
@@ -45,11 +47,11 @@ const InputPanel: React.FC<InputPanelProps> = ({ appState, onSubmit }) => {
             {appState === AppState.GENERATING ? (
               <>
                 <i className="fas fa-circle-notch fa-spin"></i>
-                <span className="hidden sm:inline">Igniting...</span>
+                <span className="hidden sm:inline">{t('sending')}</span>
               </>
             ) : (
               <>
-                <span className="hidden sm:inline">Send</span>
+                <span className="hidden sm:inline">{t('send')}</span>
                 <i className="fas fa-paper-plane"></i>
               </>
             )}

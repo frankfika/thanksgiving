@@ -2,8 +2,9 @@ import React, { useState, useEffect, useCallback } from 'react';
 import GalaxyCanvas from './components/GalaxyCanvas';
 import InputPanel from './components/InputPanel';
 import StarDetail from './components/StarDetail';
-import { analyzeGratitude, hasValidApiKey } from './services/geminiService';
+import { analyzeGratitude, hasValidApiKey } from './services/deepseekService';
 import { StarData, AppState } from './types';
+import { useI18n } from './i18n';
 
 // Pre-fill with some initial stars so the galaxy isn't empty
 const INITIAL_STARS: StarData[] = [
@@ -54,6 +55,7 @@ const App: React.FC = () => {
   const [selectedStar, setSelectedStar] = useState<StarData | null>(null);
   const [showIntro, setShowIntro] = useState(true);
   const [apiKeyExists, setApiKeyExists] = useState(true);
+  const { lang, setLang, t } = useI18n();
 
   useEffect(() => {
     setApiKeyExists(hasValidApiKey());
@@ -89,27 +91,34 @@ const App: React.FC = () => {
       {/* Header / Title */}
       <div className="absolute top-8 left-8 z-10 pointer-events-none">
         <h1 className="text-4xl font-thin tracking-widest text-transparent bg-clip-text bg-gradient-to-r from-amber-200 to-purple-400">
-          GRATITUDE ORBIT
+          {t('title')}
         </h1>
         <p className="text-white/40 text-sm mt-2 tracking-widest uppercase">
-          Happy Thanksgiving • 感恩星轨
+          {t('subtitle')}
         </p>
       </div>
 
+      {/* Language Switcher */}
+      <button
+        onClick={() => setLang(lang === 'zh' ? 'en' : 'zh')}
+        className="absolute top-8 right-8 z-20 px-3 py-1.5 rounded-full glass-panel text-white/60 hover:text-white text-sm transition-colors"
+      >
+        {lang === 'zh' ? 'EN' : '中文'}
+      </button>
+
       {/* Intro Overlay (Disappears on interaction or after time) */}
       {showIntro && (
-        <div 
+        <div
           className="absolute inset-0 z-30 flex items-center justify-center bg-black/80 backdrop-blur-md transition-opacity duration-1000"
           onClick={() => setShowIntro(false)}
         >
           <div className="text-center max-w-2xl px-6 animate-pulse-slow cursor-pointer">
-            <h2 className="text-3xl md:text-5xl font-light mb-6 text-white">Share Your Light</h2>
-            <p className="text-lg text-gray-300 font-light leading-relaxed">
-              Every gratitude creates a star. <br/>
-              Let the universe transform your thanks into a constellation of blessings.
+            <h2 className="text-3xl md:text-5xl font-light mb-6 text-white">{t('introTitle')}</h2>
+            <p className="text-lg text-gray-300 font-light leading-relaxed whitespace-pre-line">
+              {t('introDesc')}
             </p>
             <div className="mt-8 text-white/30 text-sm uppercase tracking-widest">
-              Tap anywhere to begin
+              {t('introHint')}
             </div>
           </div>
         </div>
@@ -127,7 +136,7 @@ const App: React.FC = () => {
       {/* API Key Warning (Hidden if env valid) */}
       {!apiKeyExists && (
         <div className="absolute top-0 w-full bg-red-600/80 text-white text-center p-2 text-xs z-50">
-          Missing API_KEY in environment variables. Gemini features will fail.
+          {t('missingKey')}
         </div>
       )}
     </div>

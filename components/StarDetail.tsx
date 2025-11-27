@@ -1,5 +1,6 @@
 import React from 'react';
 import { StarData } from '../types';
+import { useI18n } from '../i18n';
 
 interface StarDetailProps {
   star: StarData | null;
@@ -7,6 +8,7 @@ interface StarDetailProps {
 }
 
 const StarDetail: React.FC<StarDetailProps> = ({ star, onClose }) => {
+  const { t } = useI18n();
   if (!star) return null;
 
   return (
@@ -67,15 +69,15 @@ const StarDetail: React.FC<StarDetailProps> = ({ star, onClose }) => {
           {/* Fun Info Grid */}
           <div className="grid grid-cols-3 gap-4 w-full">
             <div className="flex flex-col items-center p-3 rounded-2xl bg-white/5 border border-white/5 hover:bg-white/10 transition-colors">
-              <span className="text-white/40 text-[10px] uppercase tracking-wider mb-1">Archetype</span>
+              <span className="text-white/40 text-[10px] uppercase tracking-wider mb-1">{t('archetype')}</span>
               <span className="text-xs font-semibold text-white/90">{star.aiResponse.archetype}</span>
             </div>
             <div className="flex flex-col items-center p-3 rounded-2xl bg-white/5 border border-white/5 hover:bg-white/10 transition-colors">
-              <span className="text-white/40 text-[10px] uppercase tracking-wider mb-1">Distance</span>
+              <span className="text-white/40 text-[10px] uppercase tracking-wider mb-1">{t('distance')}</span>
               <span className="text-xs font-semibold text-white/90">{star.aiResponse.distance}</span>
             </div>
             <div className="flex flex-col items-center p-3 rounded-2xl bg-white/5 border border-white/5 hover:bg-white/10 transition-colors">
-              <span className="text-white/40 text-[10px] uppercase tracking-wider mb-1">Resonance</span>
+              <span className="text-white/40 text-[10px] uppercase tracking-wider mb-1">{t('resonance')}</span>
               <span className="text-xs font-semibold text-white/90">{star.aiResponse.frequency}</span>
             </div>
           </div>
